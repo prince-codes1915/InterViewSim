@@ -41,7 +41,7 @@ export default function RegisterPage() {
   };
 
   const handleDemoSignIn = () => {
-    setDemoUser("alex.candidate@example.com", "Alex Rivera");
+    setDemoUser("rafid.candidate@example.com", "Raf");
     router.push("/dashboard");
   };
 
@@ -76,7 +76,7 @@ export default function RegisterPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Alex Rivera"
+                  placeholder="Raf"
                   className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
                 />
               </div>

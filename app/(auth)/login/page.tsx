@@ -41,7 +41,7 @@ export default function LoginPage() {
   };
 
   const handleDemoSignIn = () => {
-    setDemoUser("alex.candidate@example.com", "Alex Rivera");
+    setDemoUser("rafid.candidate@example.com", "Raf");
     router.push("/dashboard");
   };
 

@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const setDemoUser = (email = "alex.candidate@example.com", name = "Alex Rivera") => {
+  const setDemoUser = (email = "rafid.candidate@example.com", name = "Raf") => {
     const demoSession: UserSession = {
       uid: "demo-user-123",
       email,

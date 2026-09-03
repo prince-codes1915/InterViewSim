@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Mic, Sparkles, LogOut, LayoutDashboard, PlusCircle } from "lucide-react";
+import { Mic, Sparkles, LogOut, LayoutDashboard, PlusCircle, ShieldCheck } from "lucide-react";
 
 export const Navbar: React.FC = () => {
   const { user, logout, setDemoUser } = useAuth();
@@ -42,6 +42,15 @@ export const Navbar: React.FC = () => {
             }`}
           >
             Home
+          </Link>
+          <Link
+            href="/about"
+            className={`text-sm font-medium flex items-center gap-1.5 transition-colors hover:text-cyan-400 ${
+              pathname === "/about" ? "text-cyan-400 font-semibold" : "text-slate-400"
+            }`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            About & Credentials
           </Link>
           {user && (
             <>
