@@ -24,7 +24,7 @@ export default function InterviewFeedbackPage() {
 
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
-  const [showTranscript, setShowTranscript] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(true);
 
   useEffect(() => {
     // Attempt to load evaluation from local storage / cache
@@ -65,7 +65,21 @@ export default function InterviewFeedbackPage() {
       });
     }
 
-    // Load sample transcript
+    // Load actual saved transcript from live voice interview session
+    const storedTranscript = typeof window !== "undefined" ? sessionStorage.getItem(`transcript_${interviewId}`) : null;
+    if (storedTranscript) {
+      try {
+        const parsed = JSON.parse(storedTranscript);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTranscript(parsed);
+          return;
+        }
+      } catch (e) {
+        console.warn("Failed to parse stored transcript:", e);
+      }
+    }
+
+    // Fallback sample transcript if accessed directly
     setTranscript([
       {
         role: "assistant",

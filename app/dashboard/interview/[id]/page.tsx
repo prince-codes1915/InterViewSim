@@ -76,6 +76,11 @@ export default function LiveInterviewPage() {
   const handleInterviewComplete = async (transcript: TranscriptMessage[]) => {
     setEvaluating(true);
     try {
+      // Save actual real transcript in sessionStorage
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(`transcript_${interviewId}`, JSON.stringify(transcript));
+      }
+
       // Call Gemini 2.5 Pro evaluation API route
       const res = await fetch("/api/evaluate-interview", {
         method: "POST",
