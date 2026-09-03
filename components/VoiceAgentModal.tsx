@@ -38,10 +38,45 @@ export const VoiceAgentModal: React.FC<VoiceAgentModalProps> = ({
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const [isListeningForSpeech, setIsListeningForSpeech] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        recognition.onresult = (event: any) => {
+          const spokenText = event.results[0][0]?.transcript;
+          if (spokenText) {
+            handleSimulatedUserAnswer(spokenText);
+          }
+        };
+
+        recognition.onend = () => {
+          setIsListeningForSpeech(false);
+        };
+
+        recognition.onerror = (e: any) => {
+          console.warn("Speech recognition notice:", e);
+          setIsListeningForSpeech(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (transcriptContainerRef.current) {
+      transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight;
+    }
   }, [transcript]);
 
   // Helper for natural browser audio voice synthesis (Web Speech API)
@@ -402,7 +437,7 @@ Instructions:
           <span className="text-xs text-slate-400">{transcript.length} messages</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-2">
+        <div ref={transcriptContainerRef} className="flex-1 overflow-y-auto py-4 space-y-4 pr-2">
           {transcript.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-500 text-sm italic">
               <Radio className="h-8 w-8 text-slate-600 mb-2 animate-pulse" />
@@ -434,7 +469,6 @@ Instructions:
               </div>
             ))
           )}
-          <div ref={transcriptEndRef} />
         </div>
 
         {callState !== "idle" && callState !== "ended" && (
@@ -452,9 +486,33 @@ Instructions:
             <input
               name="userInput"
               type="text"
-              placeholder="Type your answer response here (or speak into mic)..."
+              placeholder="Type your answer or speak into microphone..."
               className="flex-1 bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
             />
+            {recognitionRef.current && (
+              <Button
+                type="button"
+                variant={isListeningForSpeech ? "danger" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (isListeningForSpeech) {
+                    try { recognitionRef.current.stop(); } catch (e) {}
+                    setIsListeningForSpeech(false);
+                  } else {
+                    try {
+                      setIsListeningForSpeech(true);
+                      recognitionRef.current.start();
+                    } catch (e) {
+                      setIsListeningForSpeech(false);
+                    }
+                  }
+                }}
+                className={isListeningForSpeech ? "animate-pulse" : ""}
+              >
+                <Mic className="h-4 w-4 mr-1 text-cyan-400" />
+                {isListeningForSpeech ? "Listening..." : "Speak Mic"}
+              </Button>
+            )}
             <Button type="submit" variant="primary" size="sm">
               Send Answer
             </Button>

@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 
 const POPULAR_ROLES = [
+  "Unity C# Game Developer",
+  "Unreal Engine C++ Developer",
+  "Game Gameplay & Systems Engineer",
+  "3D Graphics Programmer (Shaders/HLSL)",
   "Senior Full-Stack Engineer",
   "Backend Systems Engineer",
   "Frontend Architect",
@@ -27,18 +31,21 @@ const POPULAR_ROLES = [
 ];
 
 const COMMON_TECH_STACKS = [
+  "Unity",
+  "C#",
+  "Unreal Engine",
+  "C++",
+  "HLSL / Shaders",
+  "PhysX / Physics",
+  "Photon / Multiplayer",
   "TypeScript",
   "Next.js",
   "React",
   "Node.js",
   "Python",
-  "Go",
   "PostgreSQL",
   "Docker",
-  "Kubernetes",
   "Gemini 2.5",
-  "Redis",
-  "GraphQL",
 ];
 
 export default function NewInterviewPage() {

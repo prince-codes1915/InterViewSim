@@ -37,6 +37,15 @@ export default function DashboardPage() {
     // Populate realistic candidate interview history
     const history: MockInterviewSummary[] = [
       {
+        id: "demo-interview-unity",
+        role: "Unity C# Game Developer",
+        techStack: ["Unity", "C#", "Object Pooling", "Shader Graph"],
+        yearsExperience: 4,
+        score: 91,
+        status: "completed",
+        date: "Just now",
+      },
+      {
         id: "demo-interview-1",
         role: "Senior Full-Stack Engineer",
         techStack: ["Next.js", "TypeScript", "Node.js", "PostgreSQL"],
@@ -53,15 +62,6 @@ export default function DashboardPage() {
         score: 92,
         status: "completed",
         date: "2 days ago",
-      },
-      {
-        id: "demo-interview-3",
-        role: "Frontend Engineer",
-        techStack: ["React", "Tailwind CSS", "GraphQL"],
-        yearsExperience: 3,
-        score: 79,
-        status: "completed",
-        date: "1 week ago",
       },
     ];
     setInterviews(history);

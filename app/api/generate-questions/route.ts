@@ -66,33 +66,63 @@ Return a JSON array where each object has:
     }
 
     // High quality tailored fallback generator
-    const questions: Question[] = [
-      {
-        id: 1,
-        question: `Can you walk me through your recent experience with ${techStackList.split(",")[0] || role} and how you architect performant solutions for ${role} roles?`,
-        category: "Technical",
-      },
-      {
-        id: 2,
-        question: `Describe a situation where a critical production bug occurred in your ${techStackList} stack. How did you diagnose, debug, and prevent recurrence?`,
-        category: "Problem Solving",
-      },
-      {
-        id: 3,
-        question: `How would you design a scalable microservices or serverless architecture using ${techStackList} to handle high traffic and low latency?`,
-        category: "System Design",
-      },
-      {
-        id: 4,
-        question: `Tell me about a time you had a technical disagreement with a team member or product manager regarding ${techStackList.split(",")[1] || "code architecture"}. How was it resolved?`,
-        category: "Behavioral",
-      },
-      {
-        id: 5,
-        question: `Given ${yearsExperience} years of experience, how do you approach technical debt, code reviews, and maintaining code quality under tight product deadlines?`,
-        category: "Technical",
-      },
-    ];
+    const isGameDev = role.toLowerCase().includes("game") || role.toLowerCase().includes("unity") || role.toLowerCase().includes("unreal") || techStackList.toLowerCase().includes("c#") || techStackList.toLowerCase().includes("unity");
+
+    const questions: Question[] = isGameDev
+      ? [
+          {
+            id: 1,
+            question: `In Unity C#, how do you manage memory allocation and minimize Garbage Collection (GC) spikes during intensive gameplay to maintain 60 FPS?`,
+            category: "Technical",
+          },
+          {
+            id: 2,
+            question: `Walk me through your implementation strategy for Object Pooling when instantiating high-frequency game entities like projectiles or particle effects in C#.`,
+            category: "System Design",
+          },
+          {
+            id: 3,
+            question: `Describe a complex physics or rendering performance bottleneck you encountered in a game build. How did you profile and optimize GPU/CPU frametime?`,
+            category: "Problem Solving",
+          },
+          {
+            id: 4,
+            question: `Explain the differences between Update, FixedUpdate, and LateUpdate in Unity, and how script execution order affects physics calculations and camera tracking.`,
+            category: "Technical",
+          },
+          {
+            id: 5,
+            question: `How do you collaborate with 3D artists, game designers, and sound engineers when integrating assets, shaders, and animations into your game scene?`,
+            category: "Behavioral",
+          },
+        ]
+      : [
+          {
+            id: 1,
+            question: `Can you walk me through your recent experience with ${techStackList.split(",")[0] || role} and how you architect performant solutions for ${role} roles?`,
+            category: "Technical",
+          },
+          {
+            id: 2,
+            question: `Describe a situation where a critical production bug occurred in your ${techStackList} stack. How did you diagnose, debug, and prevent recurrence?`,
+            category: "Problem Solving",
+          },
+          {
+            id: 3,
+            question: `How would you design a scalable microservices or serverless architecture using ${techStackList} to handle high traffic and low latency?`,
+            category: "System Design",
+          },
+          {
+            id: 4,
+            question: `Tell me about a time you had a technical disagreement with a team member or product manager regarding ${techStackList.split(",")[1] || "code architecture"}. How was it resolved?`,
+            category: "Behavioral",
+          },
+          {
+            id: 5,
+            question: `Given ${yearsExperience} years of experience, how do you approach technical debt, code reviews, and maintaining code quality under tight product deadlines?`,
+            category: "Technical",
+          },
+        ];
 
     return NextResponse.json({ questions });
   } catch (error: any) {
