@@ -254,7 +254,7 @@ Instructions:
     }
   };
 
-  const endInterviewCall = () => {
+  const endInterviewCallWithTranscript = (currentTranscript?: TranscriptMessage[]) => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -265,7 +265,11 @@ Instructions:
       // Ignore
     }
     setCallState("ended");
-    onInterviewComplete(transcript);
+    onInterviewComplete(currentTranscript || transcript);
+  };
+
+  const endInterviewCall = () => {
+    endInterviewCallWithTranscript(transcript);
   };
 
   const handleSimulatedUserAnswer = (text: string) => {
@@ -276,35 +280,49 @@ Instructions:
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setTranscript((prev) => [...prev, userMsg]);
     setCallState("speaking");
 
-    setTimeout(() => {
-      const nextIdx = activeQuestionIndex + 1;
-      if (nextIdx < questions.length) {
-        setActiveQuestionIndex(nextIdx);
-        const aiResponseText = `Great response! Moving to question ${nextIdx + 1}: ${questions[nextIdx].question}`;
-        const aiMsg: TranscriptMessage = {
-          role: "assistant",
-          text: aiResponseText,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-        setTranscript((prev) => [...prev, aiMsg]);
-        speakAloud(aiResponseText);
-      } else {
-        const finalMsgText = "Thank you! That completes all questions for today. Generating your detailed evaluation scorecard now...";
-        const aiMsg: TranscriptMessage = {
-          role: "assistant",
-          text: finalMsgText,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-        setTranscript((prev) => [...prev, aiMsg]);
-        speakAloud(finalMsgText);
-        setTimeout(() => {
-          onInterviewComplete([...transcript, userMsg, aiMsg]);
-        }, 3000);
-      }
-    }, 1000);
+    setTranscript((prevTranscript) => {
+      const newTranscript = [...prevTranscript, userMsg];
+
+      setActiveQuestionIndex((currentIdx) => {
+        const nextIdx = currentIdx + 1;
+        if (nextIdx < questions.length) {
+          const aiResponseText = `Thank you for that response. Moving to question ${nextIdx + 1}: ${questions[nextIdx].question}`;
+          setTimeout(() => {
+            const aiMsg: TranscriptMessage = {
+              role: "assistant",
+              text: aiResponseText,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            };
+            setTranscript((p) => [...p, aiMsg]);
+            speakAloud(aiResponseText);
+          }, 800);
+          return nextIdx;
+        } else {
+          const finalMsgText = "Thank you! That completes all questions for today. Generating your detailed evaluation scorecard now...";
+          setTimeout(() => {
+            const aiMsg: TranscriptMessage = {
+              role: "assistant",
+              text: finalMsgText,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            };
+            setTranscript((p) => {
+              const fullTranscript = [...p, aiMsg];
+              speakAloud(finalMsgText);
+              // Auto-conclude session and transition to evaluation
+              setTimeout(() => {
+                endInterviewCallWithTranscript(fullTranscript);
+              }, 4000);
+              return fullTranscript;
+            });
+          }, 800);
+          return currentIdx;
+        }
+      });
+
+      return newTranscript;
+    });
   };
 
   const getStatusBadge = () => {
