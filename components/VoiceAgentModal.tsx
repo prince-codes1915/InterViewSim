@@ -44,9 +44,14 @@ export const VoiceAgentModal: React.FC<VoiceAgentModalProps> = ({
   const recognitionRef = useRef<any>(null);
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
 
-  // Dynamically calculate active question index from candidate response turns
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
+
+  // Dynamically calculate active question index from candidate response turns or manual selection
   const candidateTurnCount = transcript.filter((m) => m.role === "user").length;
-  const activeQuestionIndex = Math.min(candidateTurnCount, Math.max(0, questions.length - 1));
+  const activeQuestionIndex =
+    selectedQuestionIndex !== null
+      ? selectedQuestionIndex
+      : Math.min(candidateTurnCount, Math.max(0, questions.length - 1));
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -435,23 +440,76 @@ Instructions:
           </div>
         )}
 
-        {/* Current Target Question Progress Bar */}
-        <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col gap-2">
-          <div className="flex justify-between items-center text-xs font-semibold text-slate-400">
-            <span>Interview Progress</span>
-            <span>Question {Math.min(activeQuestionIndex + 1, questions.length)} of {questions.length}</span>
-          </div>
-          <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 transition-all duration-500"
-              style={{ width: `${((activeQuestionIndex + 1) / questions.length) * 100}%` }}
-            />
-          </div>
-          <div className="mt-2 p-3 rounded-xl bg-slate-950/50 border border-slate-800 text-sm text-slate-200">
-            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 block mb-1">
-              Active Focus Question ({questions[activeQuestionIndex]?.category || "Technical"})
+        {/* Interactive Question Stepper Agenda */}
+        <div className="mt-6 pt-6 border-t border-slate-800/80 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Interview Questions Agenda ({activeQuestionIndex + 1} of {questions.length})
             </span>
-            {questions[activeQuestionIndex]?.question || "Welcome candidate!"}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={activeQuestionIndex === 0}
+                onClick={() => setSelectedQuestionIndex(Math.max(0, activeQuestionIndex - 1))}
+                className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+              >
+                ◀ Prev Q
+              </button>
+              <button
+                type="button"
+                disabled={activeQuestionIndex === questions.length - 1}
+                onClick={() => setSelectedQuestionIndex(Math.min(questions.length - 1, activeQuestionIndex + 1))}
+                className="px-2.5 py-1 rounded-lg bg-indigo-950 border border-indigo-500/40 text-xs text-indigo-300 hover:text-white disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+              >
+                Next Q ▶
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Question Pills Stepper */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {questions.map((q, idx) => {
+              const isActive = idx === activeQuestionIndex;
+              const isAnswered = idx < activeQuestionIndex;
+              return (
+                <button
+                  type="button"
+                  key={idx}
+                  onClick={() => setSelectedQuestionIndex(idx)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? "bg-cyan-500/20 border-cyan-400 text-cyan-200 ring-2 ring-cyan-500/30 font-bold"
+                      : isAnswered
+                      ? "bg-slate-950/80 border-slate-700 text-emerald-400"
+                      : "bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  {isAnswered ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  ) : (
+                    <span className="h-4 w-4 rounded-full bg-slate-800 text-[10px] flex items-center justify-center font-bold">
+                      {idx + 1}
+                    </span>
+                  )}
+                  <span>{q.category || `Q${idx + 1}`}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Focus Question Box */}
+          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 text-sm text-slate-200 shadow-inner">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                Active Question {activeQuestionIndex + 1} Focus ({questions[activeQuestionIndex]?.category || "Technical"})
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Click Next/Prev or any pill above to change question focus
+              </span>
+            </div>
+            <p className="text-slate-100 font-medium leading-relaxed">
+              {questions[activeQuestionIndex]?.question || "Introduce your background."}
+            </p>
           </div>
         </div>
 
