@@ -27,18 +27,116 @@ export default function InterviewFeedbackPage() {
   const [showTranscript, setShowTranscript] = useState(true);
 
   useEffect(() => {
-    // Attempt to load evaluation from local storage / cache
-    const storedEval = typeof window !== "undefined" ? sessionStorage.getItem(`eval_${interviewId}`) : null;
+    // Attempt to load evaluation from storage
+    let storedEval: string | null = null;
+    let storedTranscriptStr: string | null = null;
+    if (typeof window !== "undefined") {
+      storedEval = sessionStorage.getItem(`eval_${interviewId}`) || localStorage.getItem(`eval_${interviewId}`);
+      storedTranscriptStr = sessionStorage.getItem(`transcript_${interviewId}`) || localStorage.getItem(`transcript_${interviewId}`);
+    }
+
     if (storedEval) {
       try {
         setEvaluation(JSON.parse(storedEval));
-      } catch (e) {
-        // Fallback
-      }
+      } catch (e) {}
     }
 
-    if (!storedEval) {
-      // High quality fallback evaluation data
+    if (storedTranscriptStr) {
+      try {
+        const parsed = JSON.parse(storedTranscriptStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTranscript(parsed);
+        }
+      } catch (e) {}
+    }
+
+    // Role-specific matching fallback evaluations & transcripts if accessed via direct URL
+    if (interviewId === "demo-interview-unity") {
+      if (!storedEval) {
+        setEvaluation({
+          overallScore: 91,
+          technicalScore: 93,
+          communicationScore: 89,
+          problemSolvingScore: 90,
+          strengths: [
+            "Exceptional knowledge of Unity C# memory management and Garbage Collection (GC) optimization.",
+            "Demonstrated strong implementation patterns for Object Pooling and C# Structs.",
+            "Clear explanation of Unity engine lifecycle execution (Update, FixedUpdate, LateUpdate).",
+          ],
+          areasForImprovement: [
+            "Elaborate further on Shader Graph vs HLSL custom vertex/fragment shader optimization.",
+            "Quantify frametime gains (e.g. 60 FPS to 120 FPS latency improvements) in past game builds.",
+          ],
+          summaryFeedback:
+            "Outstanding performance for a Unity C# Game Developer position. Explanations demonstrated deep engine knowledge, low-allocation C# programming techniques, and real-time physics pipeline awareness.",
+          keyTakeaways: [
+            "Use Physics.RaycastNonAlloc and pre-allocated buffers to prevent GC allocation spikes.",
+            "Always state target frametime budgets (e.g., 16.6ms for 60 FPS) during technical discussions.",
+          ],
+        });
+      }
+
+      if (!storedTranscriptStr) {
+        setTranscript([
+          {
+            role: "assistant",
+            text: "Hello! Welcome to your Unity C# Game Developer mock interview. Let's begin with our first question: In Unity C#, how do you manage memory allocation and minimize Garbage Collection (GC) spikes during intensive gameplay to maintain 60 FPS?",
+            timestamp: "10:00 AM",
+          },
+          {
+            role: "user",
+            text: "To prevent GC spikes, I implement Object Pooling for high-frequency entities like bullets and particle effects, avoid instantiating objects inside Update(), use NonAlloc physics queries like Physics.RaycastNonAlloc, and favor Structs over Classes for transient data.",
+            timestamp: "10:01 AM",
+          },
+          {
+            role: "assistant",
+            text: "Excellent response. Walk me through your implementation strategy for Object Pooling when instantiating game entities in C#.",
+            timestamp: "10:02 AM",
+          },
+          {
+            role: "user",
+            text: "I create a generic Queue-based ObjectPool manager in C# that pre-allocates game objects at scene load. When an object is needed, we call GetFromPool() which sets active state to true, and ReturnToPool() disables the object and enqueues it back without triggering GC.GarbageCollect.",
+            timestamp: "10:04 AM",
+          },
+        ]);
+      }
+    } else if (interviewId === "demo-interview-2") {
+      if (!storedEval) {
+        setEvaluation({
+          overallScore: 92,
+          technicalScore: 94,
+          communicationScore: 90,
+          problemSolvingScore: 92,
+          strengths: [
+            "Profound architecture depth in LLM agent orchestration, RAG pipelines, and vector database indexing.",
+            "Strong grasp of Gemini 2.5 API token streaming and latency reduction.",
+          ],
+          areasForImprovement: [
+            "Elaborate further on fine-tuning vs RAG trade-offs for domain-specific context.",
+          ],
+          summaryFeedback:
+            "Superb technical evaluation for an AI Systems Architect role. Demonstrates production experience with vector retrieval, LLM prompt engineering, and scalable backend pipelines.",
+          keyTakeaways: [
+            "Benchmark vector similarity metrics (Cosine vs HNSW) when explaining retrieval accuracy.",
+          ],
+        });
+      }
+
+      if (!storedTranscriptStr) {
+        setTranscript([
+          {
+            role: "assistant",
+            text: "Welcome to your AI Systems Architect mock interview. How do you design low-latency RAG systems with Gemini 2.5 and vector databases?",
+            timestamp: "10:00 AM",
+          },
+          {
+            role: "user",
+            text: "We implement semantic caching using Redis to short-circuit frequent LLM queries, stream tokens with WebSockets, and chunk documents using dynamic overlap to maximize retrieval precision.",
+            timestamp: "10:01 AM",
+          },
+        ]);
+      }
+    } else if (!storedEval) {
       setEvaluation({
         overallScore: 88,
         technicalScore: 91,
@@ -48,60 +146,19 @@ export default function InterviewFeedbackPage() {
           "Demonstrated exceptional mastery of Next.js 14 App Router, WebSockets, and state management trade-offs.",
           "Clear and concise technical communication with logical step-by-step problem decomposition.",
           "Strong awareness of microservice caching strategies, Redis cluster failover, and data consistency.",
-          "Maintained high confidence and steady structure throughout complex architecture questions.",
         ],
         areasForImprovement: [
           "Quantify achievements more aggressively (e.g. mention specific latency reduction percentages or throughput numbers).",
           "Elaborate further on database indexing strategy and query execution plans during high-concurrency spikes.",
-          "Structure behavioral situational answers even more strictly using the STAR framework.",
         ],
         summaryFeedback:
-          "The candidate performed exceptionally well for a Senior Full-Stack / Systems Engineer position. Responses displayed profound technical depth in modern Web architectures, type safety, and real-time WebRTC communication layers. Incorporating specific quantitative metrics into past accomplishments will elevate their real-world interview performance to top 1%.",
+          "The candidate performed exceptionally well for a Senior Full-Stack / Systems Engineer position. Responses displayed profound technical depth in modern Web architectures, type safety, and real-time WebRTC communication layers.",
         keyTakeaways: [
           "Prepare 2-3 specific quantitative metrics for every key project on your resume.",
           "Always outline high-level component diagrams before diving into code-level implementation details.",
-          "State explicit trade-offs (latency vs bandwidth, consistency vs availability) early in system design discussions.",
         ],
       });
     }
-
-    // Load actual saved transcript from live voice interview session
-    const storedTranscript = typeof window !== "undefined" ? sessionStorage.getItem(`transcript_${interviewId}`) : null;
-    if (storedTranscript) {
-      try {
-        const parsed = JSON.parse(storedTranscript);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTranscript(parsed);
-          return;
-        }
-      } catch (e) {
-        console.warn("Failed to parse stored transcript:", e);
-      }
-    }
-
-    // Fallback sample transcript if accessed directly
-    setTranscript([
-      {
-        role: "assistant",
-        text: "Hello! Welcome to your mock interview session. Let's begin with our first question: Can you walk me through your experience building full-stack web applications with Next.js and TypeScript?",
-        timestamp: "10:00 AM",
-      },
-      {
-        role: "user",
-        text: "Thank you. I have over 5 years of experience building modern web platforms. In my recent work, I architected a real-time analytics dashboard using Next.js 14 App Router, TypeScript strict mode, and WebSockets. We leveraged Server Actions for mutations and optimized bundle sizes through dynamic imports.",
-        timestamp: "10:01 AM",
-      },
-      {
-        role: "assistant",
-        text: "Excellent response. How do you handle state management, caching, and SSR performance optimization in complex client apps?",
-        timestamp: "10:02 AM",
-      },
-      {
-        role: "user",
-        text: "We utilize React Server Components for data fetching close to the database, paired with React Query and Zustand for transient client-side state. For caching, we implement HTTP cache headers alongside Redis cache-aside layers.",
-        timestamp: "10:04 AM",
-      },
-    ]);
   }, [interviewId]);
 
   return (

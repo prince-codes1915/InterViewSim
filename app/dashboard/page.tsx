@@ -34,8 +34,8 @@ export default function DashboardPage() {
   const [interviews, setInterviews] = useState<MockInterviewSummary[]>([]);
 
   useEffect(() => {
-    // Populate realistic candidate interview history
-    const history: MockInterviewSummary[] = [
+    // Initial demo fallback templates
+    const demoHistory: MockInterviewSummary[] = [
       {
         id: "demo-interview-unity",
         role: "Unity C# Game Developer",
@@ -43,7 +43,7 @@ export default function DashboardPage() {
         yearsExperience: 4,
         score: 91,
         status: "completed",
-        date: "Just now",
+        date: "Preset Demo",
       },
       {
         id: "demo-interview-1",
@@ -52,7 +52,7 @@ export default function DashboardPage() {
         yearsExperience: 5,
         score: 88,
         status: "completed",
-        date: "Today",
+        date: "Preset Demo",
       },
       {
         id: "demo-interview-2",
@@ -61,10 +61,31 @@ export default function DashboardPage() {
         yearsExperience: 6,
         score: 92,
         status: "completed",
-        date: "2 days ago",
+        date: "Preset Demo",
       },
     ];
-    setInterviews(history);
+
+    if (typeof window !== "undefined") {
+      const storedUserInterviews = localStorage.getItem("user_interviews");
+      if (storedUserInterviews) {
+        try {
+          const parsedUserInterviews: MockInterviewSummary[] = JSON.parse(storedUserInterviews);
+          if (Array.isArray(parsedUserInterviews) && parsedUserInterviews.length > 0) {
+            // Merge user real completed interviews at top, followed by demo presets
+            const combined = [
+              ...parsedUserInterviews,
+              ...demoHistory.filter((d) => !parsedUserInterviews.some((u) => u.id === d.id)),
+            ];
+            setInterviews(combined);
+            return;
+          }
+        } catch (e) {
+          console.warn("Failed to parse user_interviews from localStorage:", e);
+        }
+      }
+    }
+
+    setInterviews(demoHistory);
   }, []);
 
   const totalInterviews = interviews.length;

@@ -76,9 +76,10 @@ export default function LiveInterviewPage() {
   const handleInterviewComplete = async (transcript: TranscriptMessage[]) => {
     setEvaluating(true);
     try {
-      // Save actual real transcript in sessionStorage
+      // Save actual real transcript in sessionStorage and localStorage
       if (typeof window !== "undefined") {
         sessionStorage.setItem(`transcript_${interviewId}`, JSON.stringify(transcript));
+        localStorage.setItem(`transcript_${interviewId}`, JSON.stringify(transcript));
       }
 
       // Call Gemini 2.5 Pro evaluation API route
@@ -95,7 +96,35 @@ export default function LiveInterviewPage() {
 
       const data = await res.json();
       if (data.evaluation) {
-        sessionStorage.setItem(`eval_${interviewId}`, JSON.stringify(data.evaluation));
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(`eval_${interviewId}`, JSON.stringify(data.evaluation));
+          localStorage.setItem(`eval_${interviewId}`, JSON.stringify(data.evaluation));
+
+          // Save new session summary to user_interviews list for Dashboard
+          const newSessionSummary = {
+            id: interviewId,
+            role: session?.role || "Software Engineer",
+            techStack: session?.techStack || ["TypeScript"],
+            yearsExperience: session?.yearsExperience || 5,
+            score: data.evaluation.overallScore || 80,
+            status: "completed" as const,
+            date: "Just now",
+          };
+
+          const existingStr = localStorage.getItem("user_interviews");
+          let existingList: any[] = [];
+          if (existingStr) {
+            try {
+              existingList = JSON.parse(existingStr);
+            } catch (e) {}
+          }
+
+          const updatedList = [
+            newSessionSummary,
+            ...existingList.filter((item) => item.id !== interviewId),
+          ];
+          localStorage.setItem("user_interviews", JSON.stringify(updatedList));
+        }
       }
     } catch (err) {
       console.warn("Evaluation request warning:", err);
