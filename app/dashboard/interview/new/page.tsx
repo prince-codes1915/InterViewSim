@@ -54,6 +54,7 @@ export default function NewInterviewPage() {
   const [selectedTech, setSelectedTech] = useState<string[]>(["TypeScript", "Next.js", "Node.js"]);
   const [customTechInput, setCustomTechInput] = useState("");
   const [yearsExperience, setYearsExperience] = useState<number>(5);
+  const [interviewerMode, setInterviewerMode] = useState<"friendly" | "strict">("friendly");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,6 +109,7 @@ export default function NewInterviewPage() {
           role,
           techStack: selectedTech,
           yearsExperience,
+          interviewerMode,
           questions: generatedQuestions,
         })
       );
@@ -242,6 +244,50 @@ export default function NewInterviewPage() {
                 <span>Mid-Level (2-4 YOE)</span>
                 <span>Senior (5-8 YOE)</span>
                 <span>Staff / Principal (9+ YOE)</span>
+              </div>
+            </div>
+
+            {/* Interviewer Persona Mode Selector */}
+            <div className="space-y-3 pt-2">
+              <label className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                <Zap className="h-4 w-4 text-cyan-400" /> Interviewer Persona & Tone
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setInterviewerMode("friendly")}
+                  className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
+                    interviewerMode === "friendly"
+                      ? "bg-emerald-950/70 border-emerald-500/80 ring-2 ring-emerald-500/30"
+                      : "bg-slate-950/40 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-white text-sm">😊 Friendly & Supportive</span>
+                    {interviewerMode === "friendly" && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Conversational, encouraging feedback, and helpful hints. Great for practice and confidence building.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInterviewerMode("strict")}
+                  className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
+                    interviewerMode === "strict"
+                      ? "bg-rose-950/70 border-rose-500/80 ring-2 ring-rose-500/30"
+                      : "bg-slate-950/40 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-white text-sm">🔥 Strict FAANG Bar Raiser</span>
+                    {interviewerMode === "strict" && <CheckCircle2 className="h-4 w-4 text-rose-400" />}
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Direct, challenging, zero fluff. Probes deeply for memory leaks, performance traps, and unconvincing logic.
+                  </p>
+                </button>
               </div>
             </div>
           </CardContent>

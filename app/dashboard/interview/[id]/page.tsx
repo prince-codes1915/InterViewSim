@@ -181,6 +181,7 @@ export default function LiveInterviewPage() {
           techStack={session.techStack}
           yearsExperience={session.yearsExperience}
           questions={session.questions}
+          initialInterviewerMode={(session as any).interviewerMode || "friendly"}
           onInterviewComplete={handleInterviewComplete}
         />
       )}

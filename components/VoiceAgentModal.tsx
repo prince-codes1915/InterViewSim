@@ -24,6 +24,7 @@ interface VoiceAgentModalProps {
   yearsExperience: number;
   questions: Question[];
   onInterviewComplete: (transcript: TranscriptMessage[]) => void;
+  initialInterviewerMode?: "friendly" | "strict";
 }
 
 export const VoiceAgentModal: React.FC<VoiceAgentModalProps> = ({
@@ -32,15 +33,20 @@ export const VoiceAgentModal: React.FC<VoiceAgentModalProps> = ({
   yearsExperience,
   questions,
   onInterviewComplete,
+  initialInterviewerMode = "friendly",
 }) => {
   const [callState, setCallState] = useState<VapiCallState>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
-  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [interviewerMode, setInterviewerMode] = useState<"friendly" | "strict">(initialInterviewerMode);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isListeningForSpeech, setIsListeningForSpeech] = useState(false);
   const recognitionRef = useRef<any>(null);
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
+
+  // Dynamically calculate active question index from candidate response turns
+  const candidateTurnCount = transcript.filter((m) => m.role === "user").length;
+  const activeQuestionIndex = Math.min(candidateTurnCount, Math.max(0, questions.length - 1));
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -185,8 +191,22 @@ export const VoiceAgentModal: React.FC<VoiceAgentModalProps> = ({
     setCallState("connecting");
     setErrorMessage(null);
 
+    const isStrict = interviewerMode === "strict";
     const questionsListText = questions.map((q, i) => `${i + 1}. [${q.category}] ${q.question}`).join("\n");
-    const systemPrompt = `You are a professional, friendly, and human AI Senior Technical Interviewer conducting a mock voice interview for a ${role} position.
+    const systemPrompt = isStrict
+      ? `You are a strict, highly demanding, no-nonsense FAANG Senior Staff Engineering Manager & Bar Raiser conducting a technical stress-test for a ${role} position.
+Required Tech Stack: ${techStack.join(", ")}.
+Candidate Experience: ${yearsExperience} years.
+
+Interview Questions to ask step by step:
+${questionsListText}
+
+Instructions:
+1. Greet the candidate in a direct, serious, unyielding tone and ask Question 1.
+2. DO NOT flatter or offer sugarcoated praise.
+3. If candidate answers are vague or missing low-level memory/performance trade-offs, probe firmly or move directly to the next question with zero fluff.
+4. Conclude strictly after covering all 5 questions.`
+      : `You are a professional, friendly, and human AI Senior Technical Interviewer conducting a mock voice interview for a ${role} position.
 Required Tech Stack: ${techStack.join(", ")}.
 Candidate Experience: ${yearsExperience} years.
 
@@ -199,7 +219,9 @@ Instructions:
 3. Keep answers conversational, direct, and engaging.
 4. Conclude warmly after covering the topics.`;
 
-    const initialGreetingText = `Hello! Welcome to your ${role} mock interview. I'm excited to speak with you today. We'll walk through 5 technical and scenario questions. Let's start with our first question: ${questions[0]?.question || "Can you introduce your technical background?"}`;
+    const initialGreetingText = isStrict
+      ? `State your background concisely. Starting Question 1: ${questions[0]?.question || "Introduce your background."}`
+      : `Hello! Welcome to your ${role} mock interview. I'm excited to speak with you today. Let's start with our first question: ${questions[0]?.question || "Can you introduce your technical background?"}`;
 
     try {
       const vapi = getVapiInstance();
@@ -212,10 +234,9 @@ Instructions:
             model: "gpt-4o-mini",
             messages: [{ role: "system", content: systemPrompt }],
           },
-          // Ultra-realistic ElevenLabs natural human voice model configuration
           voice: {
             provider: "11labs",
-            voiceId: "21m00Tcm4TlvDq8ikWAM", // Rachel - Warm, professional female voice
+            voiceId: "21m00Tcm4TlvDq8ikWAM",
             stability: 0.5,
             similarityBoost: 0.75,
           } as any,
@@ -284,42 +305,45 @@ Instructions:
 
     setTranscript((prevTranscript) => {
       const newTranscript = [...prevTranscript, userMsg];
+      const currentAnswerCount = newTranscript.filter((m) => m.role === "user").length;
+      const isStrict = interviewerMode === "strict";
 
-      setActiveQuestionIndex((currentIdx) => {
-        const nextIdx = currentIdx + 1;
-        if (nextIdx < questions.length) {
-          const aiResponseText = `Thank you for that response. Moving to question ${nextIdx + 1}: ${questions[nextIdx].question}`;
-          setTimeout(() => {
-            const aiMsg: TranscriptMessage = {
-              role: "assistant",
-              text: aiResponseText,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            };
-            setTranscript((p) => [...p, aiMsg]);
-            speakAloud(aiResponseText);
-          }, 800);
-          return nextIdx;
-        } else {
-          const finalMsgText = "Thank you! That completes all questions for today. Generating your detailed evaluation scorecard now...";
-          setTimeout(() => {
-            const aiMsg: TranscriptMessage = {
-              role: "assistant",
-              text: finalMsgText,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            };
-            setTranscript((p) => {
-              const fullTranscript = [...p, aiMsg];
-              speakAloud(finalMsgText);
-              // Auto-conclude session and transition to evaluation
-              setTimeout(() => {
-                endInterviewCallWithTranscript(fullTranscript);
-              }, 4000);
-              return fullTranscript;
-            });
-          }, 800);
-          return currentIdx;
-        }
-      });
+      if (currentAnswerCount < questions.length) {
+        const nextQ = questions[currentAnswerCount];
+        const aiResponseText = isStrict
+          ? `Noted. Question ${currentAnswerCount + 1}: ${nextQ.question}`
+          : `Thank you for that response. Moving to question ${currentAnswerCount + 1}: ${nextQ.question}`;
+
+        setTimeout(() => {
+          const aiMsg: TranscriptMessage = {
+            role: "assistant",
+            text: aiResponseText,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          };
+          setTranscript((p) => [...p, aiMsg]);
+          speakAloud(aiResponseText);
+        }, 800);
+      } else {
+        const finalMsgText = isStrict
+          ? "Session complete. Generating your strict FAANG evaluation scorecard..."
+          : "Thank you! That completes all questions for today. Generating your detailed evaluation scorecard now...";
+
+        setTimeout(() => {
+          const aiMsg: TranscriptMessage = {
+            role: "assistant",
+            text: finalMsgText,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          };
+          setTranscript((p) => {
+            const fullTranscript = [...p, aiMsg];
+            speakAloud(finalMsgText);
+            setTimeout(() => {
+              endInterviewCallWithTranscript(fullTranscript);
+            }, 3500);
+            return fullTranscript;
+          });
+        }, 800);
+      }
 
       return newTranscript;
     });
@@ -361,9 +385,21 @@ Instructions:
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-xl font-bold text-white">AI Voice Interviewer</h3>
                 {getStatusBadge()}
+                <button
+                  type="button"
+                  onClick={() => setInterviewerMode(interviewerMode === "friendly" ? "strict" : "friendly")}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer font-medium flex items-center gap-1 ${
+                    interviewerMode === "strict"
+                      ? "bg-rose-950/80 border-rose-500/50 text-rose-300 shadow-md shadow-rose-500/20"
+                      : "bg-emerald-950/80 border-emerald-500/50 text-emerald-300 shadow-md shadow-emerald-500/20"
+                  }`}
+                  title="Click to toggle interviewer tone"
+                >
+                  {interviewerMode === "strict" ? "🔥 Strict Bar Raiser" : "😊 Friendly Mode"}
+                </button>
               </div>
               <p className="text-sm text-slate-400 mt-1">
                 Conducting interview for <span className="text-cyan-300 font-semibold">{role}</span>
