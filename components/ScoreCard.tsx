@@ -73,12 +73,25 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ evaluation }) => {
             </div>
           </div>
 
-          <Badge variant={evaluation.overallScore >= 75 ? "success" : "warning"} className="mt-1">
+          <Badge
+            variant={
+              evaluation.overallScore >= 85
+                ? "success"
+                : evaluation.overallScore >= 66
+                ? "indigo"
+                : evaluation.overallScore >= 46
+                ? "warning"
+                : "destructive"
+            }
+            className="mt-1"
+          >
             {evaluation.overallScore >= 85
               ? "Strong Hire Candidate"
-              : evaluation.overallScore >= 70
+              : evaluation.overallScore >= 66
               ? "Hire Candidate"
-              : "Needs Technical Polish"}
+              : evaluation.overallScore >= 46
+              ? "Needs Technical Polish"
+              : "Below Technical Bar / Fail"}
           </Badge>
         </Card>
 

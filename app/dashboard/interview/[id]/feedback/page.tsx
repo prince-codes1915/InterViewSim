@@ -136,28 +136,77 @@ export default function InterviewFeedbackPage() {
           },
         ]);
       }
+    } else if (interviewId === "demo-interview-1") {
+      if (!storedEval) {
+        setEvaluation({
+          overallScore: 88,
+          technicalScore: 91,
+          communicationScore: 84,
+          problemSolvingScore: 89,
+          strengths: [
+            "Demonstrated solid mastery of Next.js 14 App Router, WebSockets, and state management trade-offs.",
+            "Clear and concise technical communication with logical step-by-step problem decomposition.",
+            "Strong awareness of microservice caching strategies, Redis cluster failover, and data consistency.",
+          ],
+          areasForImprovement: [
+            "Quantify achievements more aggressively (e.g. mention specific latency reduction percentages or throughput numbers).",
+            "Elaborate further on database indexing strategy and query execution plans during high-concurrency spikes.",
+          ],
+          summaryFeedback:
+            "The candidate performed well for a Senior Full-Stack position. Responses displayed technical competence in modern Web architectures, type safety, and real-time WebRTC communication layers.",
+          keyTakeaways: [
+            "Prepare 2-3 specific quantitative metrics for every key project on your resume.",
+            "Always outline high-level component diagrams before diving into code-level implementation details.",
+          ],
+        });
+      }
     } else if (!storedEval) {
-      setEvaluation({
-        overallScore: 88,
-        technicalScore: 91,
-        communicationScore: 84,
-        problemSolvingScore: 89,
-        strengths: [
-          "Demonstrated exceptional mastery of Next.js 14 App Router, WebSockets, and state management trade-offs.",
-          "Clear and concise technical communication with logical step-by-step problem decomposition.",
-          "Strong awareness of microservice caching strategies, Redis cluster failover, and data consistency.",
-        ],
-        areasForImprovement: [
-          "Quantify achievements more aggressively (e.g. mention specific latency reduction percentages or throughput numbers).",
-          "Elaborate further on database indexing strategy and query execution plans during high-concurrency spikes.",
-        ],
-        summaryFeedback:
-          "The candidate performed exceptionally well for a Senior Full-Stack / Systems Engineer position. Responses displayed profound technical depth in modern Web architectures, type safety, and real-time WebRTC communication layers.",
-        keyTakeaways: [
-          "Prepare 2-3 specific quantitative metrics for every key project on your resume.",
-          "Always outline high-level component diagrams before diving into code-level implementation details.",
-        ],
-      });
+      // Dynamic fallback for user interviews if session storage was cleared but transcript exists
+      const transcriptArr = storedTranscriptStr ? JSON.parse(storedTranscriptStr) : [];
+      const userMsgs = transcriptArr.filter((t: any) => t.role === "user" || t.speaker === "user");
+      const totalWords = userMsgs.reduce((acc: number, t: any) => acc + (t.text ? t.text.split(/\s+/).filter(Boolean).length : 0), 0);
+      const avgWords = userMsgs.length > 0 ? totalWords / userMsgs.length : 0;
+
+      if (userMsgs.length === 0 || totalWords < 15) {
+        setEvaluation({
+          overallScore: 25,
+          technicalScore: 20,
+          communicationScore: 30,
+          problemSolvingScore: 22,
+          strengths: ["Attempted interview connection."],
+          areasForImprovement: [
+            "Minimal to no candidate answers recorded.",
+            "Lacks technical explanations for target position.",
+          ],
+          summaryFeedback: "UNSATISFACTORY: Evaluation failed due to missing or empty candidate responses.",
+          keyTakeaways: ["Ensure audio mic input is active and provide detailed answers."],
+        });
+      } else if (avgWords < 25) {
+        setEvaluation({
+          overallScore: 45,
+          technicalScore: 40,
+          communicationScore: 50,
+          problemSolvingScore: 42,
+          strengths: ["Responded to questions."],
+          areasForImprovement: [
+            "Answers were overly brief and lacked technical depth.",
+            "Did not provide specific architectural trade-offs.",
+          ],
+          summaryFeedback: "BELOW BAR: Candidate responses were too high-level and brief for passing criteria.",
+          keyTakeaways: ["Elaborate thoroughly with concrete examples and technical details."],
+        });
+      } else {
+        setEvaluation({
+          overallScore: 72,
+          technicalScore: 70,
+          communicationScore: 76,
+          problemSolvingScore: 71,
+          strengths: ["Provided detailed responses to interview questions."],
+          areasForImprovement: ["Add quantitative performance metrics to strengthen answers."],
+          summaryFeedback: "COMPETENT: Solid performance with clear technical responses.",
+          keyTakeaways: ["Incorporate specific STAR framework metrics in future interviews."],
+        });
+      }
     }
   }, [interviewId]);
 

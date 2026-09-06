@@ -18,32 +18,49 @@ export async function POST(req: NextRequest) {
 
     const techStackList = Array.isArray(techStack) ? techStack.join(", ") : (techStack || "General Tech");
     const formattedTranscript = transcript
-      .map((t: any) => `[${t.role || t.speaker || 'Speaker'}]: ${t.text || t.content || ''}`)
-      .join("\n");
+      .map((t: any) => {
+        const isUser = t.role === "user" || t.speaker === "user";
+        const roleLabel = isUser ? "CANDIDATE RESPONSE" : "INTERVIEWER QUESTION";
+        return `[${roleLabel}]: ${t.text || t.content || ""}`;
+      })
+      .join("\n\n");
 
-    const prompt = `You are a strict, candid, FAANG-level Bar Raiser & Principal Engineering Director evaluating a candidate's technical interview transcript.
+    const prompt = `You are an unforgiving, candid, FAANG-level Bar Raiser & Principal Engineering Director evaluating a candidate's technical interview transcript.
 
 Target Role: ${role || "Software Engineer"}
-Tech Stack: ${techStackList}
+Required Tech Stack: ${techStackList}
 
-Interview Transcript:
-${formattedTranscript || "No user answers recorded."}
+Transcript to Evaluate:
+${formattedTranscript || "No candidate answers recorded."}
 
-CRITICAL EVALUATION INSTRUCTIONS:
-1. DO NOT flatter or sugarcoat feedback. Be direct, objective, and realistic.
-2. Evaluate based on candidate's ACTUAL answers in the transcript.
-3. If candidate answers are brief, vague, hand-wavy, missing core technical terms, or incorrect regarding ${techStackList}, penalize scores heavily (assign scores in the 35-65 range).
-4. Only assign 80+ scores if the candidate provided deep technical specifics, concrete trade-offs, system architecture depth, and STAR-structured explanations.
+STRICT TIER SCORING RUBRIC (0-100 Scale):
+You MUST evaluate candidate answers strictly against these exact numerical standard tiers:
 
-Provide output strictly as JSON with the following fields:
+- 0 to 25 (Fail / Non-Responsive):
+  Candidate gave empty answers, silence, gibberish, "I don't know", "idk", "pass", "no idea", or completely irrelevant short answers. Total failure to demonstrate engineering ability.
+- 26 to 45 (Poor / Major Technical Gaps):
+  Candidate gave minimal 1-2 sentence answers, made major technical errors, lacked basic understanding of ${techStackList}, or completely avoided answering core technical details.
+- 46 to 65 (Mediocre / Below Bar):
+  Candidate gave high-level, generic buzzword answers without explaining mechanisms, code patterns, memory/performance trade-offs, or STAR structure. Fails FAANG bar raiser standard.
+- 66 to 82 (Competent / Pass):
+  Candidate gave solid, technically accurate answers with clear reasoning, core ${techStackList} concepts, and reasonable problem-solving structure.
+- 83 to 100 (Strong Hire / Bar Raiser Exception):
+  Candidate gave exceptional deep-dive answers with specific architectural trade-offs, low-level optimizations, STAR metrics (latency, throughput, scaling numbers), and edge-case handling.
+
+MANDATORY RULES:
+1. PENALIZE HEAVILY if the candidate said "I don't know", skipped questions, gave single-word responses, or gave non-technical answers. Assign overall score strictly in the 10-40 range for such transcripts.
+2. DO NOT flatter or inflate scores. If the candidate performed poorly or vaguely, the overall score MUST be below 50.
+3. Compute overallScore as a fair weighted reflection of technicalScore (40%), problemSolvingScore (35%), and communicationScore (25%).
+
+Provide output strictly as JSON matching this schema:
 - overallScore: number (0-100)
 - technicalScore: number (0-100)
 - communicationScore: number (0-100)
 - problemSolvingScore: number (0-100)
-- strengths: array of strings (2-4 honest strengths observed in their answers)
-- areasForImprovement: array of strings (3-5 sharp, critical, actionable technical gaps or flaws observed)
-- summaryFeedback: string (candid executive evaluation paragraph)
-- keyTakeaways: array of strings (3 concrete actionable takeaways for improvement)`;
+- strengths: array of strings (2-4 honest strengths or baseline observations)
+- areasForImprovement: array of strings (3-5 sharp, candid, actionable technical gaps observed)
+- summaryFeedback: string (direct, realistic executive evaluation paragraph)
+- keyTakeaways: array of strings (3 concrete actionable takeaways)`;
 
     let evaluationResult: EvaluationResult;
     const apiKey = process.env.GEMINI_API_KEY;
@@ -120,79 +137,114 @@ Provide output strictly as JSON with the following fields:
 
 function generateFallbackEvaluation(role: string, techStack: string, transcript: any[]): EvaluationResult {
   const userMessages = transcript.filter((t) => t.role === "user" || t.speaker === "user");
-  const totalUserWords = userMessages.reduce((acc, t) => acc + (t.text ? t.text.split(" ").length : 0), 0);
+  const fullUserText = userMessages.map((t) => (t.text || t.content || "").toLowerCase()).join(" ");
+  const totalUserWords = userMessages.reduce((acc, t) => acc + (t.text ? t.text.split(/\s+/).filter(Boolean).length : 0), 0);
   const avgWordsPerAnswer = userMessages.length > 0 ? totalUserWords / userMessages.length : 0;
 
-  // Strict dynamic evaluation scoring matrix
-  if (userMessages.length === 0 || totalUserWords < 20) {
+  // Detect negative / evasive phrases
+  const negativeRegex = /\b(i don'?t know|idk|no idea|pass|not sure|skip|no clue|dunno|help|none|n\/a)\b/gi;
+  const negativeMatches = (fullUserText.match(negativeRegex) || []).length;
+
+  // Detect technical keyword presence matching tech stack
+  const techTerms = techStack.toLowerCase().split(/[\s,]+/).filter((w) => w.length > 2);
+  const matchedTerms = techTerms.filter((term) => fullUserText.includes(term));
+
+  // Tier 1: Non-responsive, silence, or empty answers (< 15 total words or mostly "don't know")
+  if (userMessages.length === 0 || totalUserWords < 15 || (negativeMatches >= userMessages.length && userMessages.length > 0)) {
     return {
-      overallScore: 45,
-      technicalScore: 40,
-      communicationScore: 50,
-      problemSolvingScore: 45,
+      overallScore: 22,
+      technicalScore: 18,
+      communicationScore: 28,
+      problemSolvingScore: 20,
       strengths: [
-        "Initiated the interview session.",
-        "Identified target position role context.",
+        "Initiated candidate voice interview session.",
+        "Attempted connection with interviewer.",
       ],
       areasForImprovement: [
-        "Candidate provided minimal to no answers during the voice simulation.",
-        "Failed to explain technical concepts, code syntax, or system design decisions.",
-        "Must speak into the microphone or submit detailed text answers to pass candidate evaluation.",
+        "Candidate failed to provide substantive answers or stated 'I don't know' across questions.",
+        "Zero technical depth or domain explanations provided for the requested position.",
+        "Must speak into the microphone and elaborate on core technical concepts to receive candidate consideration.",
       ],
-      summaryFeedback: `Candidate evaluation failed due to insufficient candidate response data. For a ${role} role, thorough technical explanations with concrete examples are required to establish engineering competence.`,
+      summaryFeedback: `UNSATISFACTORY / FAIL: The candidate provided negligible response data for a ${role} position. Basic technical concepts were not explained, resulting in heavy penalties across all dimensions.`,
       keyTakeaways: [
-        "Ensure your microphone is active or type detailed technical responses.",
-        "Walk through your step-by-step reasoning when answering technical questions.",
-        "Provide concrete code or architectural patterns in your responses.",
+        "Review core fundamentals of " + techStack + " before re-attempting.",
+        "Avoid skipping questions; attempt to break down problems even if uncertain.",
+        "Ensure your audio input or text input is active throughout the session.",
       ],
     };
   }
 
-  if (avgWordsPerAnswer < 25) {
+  // Tier 2: Extremely brief or evasive answers (< 20 avg words per answer or high evasiveness)
+  if (avgWordsPerAnswer < 20 || negativeMatches > 1) {
     return {
-      overallScore: 62,
+      overallScore: 42,
+      technicalScore: 38,
+      communicationScore: 48,
+      problemSolvingScore: 40,
+      strengths: [
+        "Responded to questions without dropping out.",
+        "Maintained minimal basic communication flow.",
+      ],
+      areasForImprovement: [
+        `Answers were overly brief and surface-level for a ${role} candidate bar.`,
+        `Failed to detail architectural patterns, memory management, or performance trade-offs in ${techStack}.`,
+        "Did not structure answers using the STAR method (Situation, Task, Action, Result).",
+      ],
+      summaryFeedback: `BELOW BAR: The candidate's answers lacked the required technical depth for a ${role}. Explanations were brief and failed to demonstrate practical proficiency in ${techStack}.`,
+      keyTakeaways: [
+        "Elaborate thoroughly on implementation details rather than giving 1-sentence summaries.",
+        "Explicitly mention edge-case handling and production trade-offs.",
+        "Incorporate concrete STAR metrics when discussing past experience.",
+      ],
+    };
+  }
+
+  // Tier 3: Moderate answers, missing deep trade-offs or key keywords (< 45 avg words or low keyword density)
+  if (avgWordsPerAnswer < 45 || matchedTerms.length < 2) {
+    return {
+      overallScore: 61,
       technicalScore: 58,
-      communicationScore: 65,
+      communicationScore: 66,
       problemSolvingScore: 60,
       strengths: [
-        "Responded to questions promptly.",
-        `Basic familiarity with ${techStack} terminology.`,
+        `Demonstrated basic familiarity with ${techStack} terminology.`,
+        "Maintained coherent communication flow during technical questions.",
       ],
       areasForImprovement: [
-        `Answers lacked technical depth regarding ${techStack} memory management, performance, and API design.`,
-        "Responses were too brief and surface-level for a senior level interview bar.",
-        "Did not use the STAR framework (Situation, Task, Action, Result) when describing past experience.",
-        "Missing quantitative impact metrics (e.g. latency improvement %, load scaling data).",
+        `Explanations remained high-level without diving into advanced ${techStack} mechanics or scaling.`,
+        "Lacked quantitative metrics (e.g. latency improvement %, load scaling stats) to substantiate claims.",
+        "System design reasoning needs more explicit fault tolerance and caching strategies.",
       ],
-      summaryFeedback: `The candidate provided basic answers but fell short of the depth expected for a ${role}. Explanations remained high-level without demonstrating deep mastery of ${techStack} or system trade-offs.`,
+      summaryFeedback: `MEDIOCRE: The candidate demonstrated foundational understanding for a ${role}, but answers fell short of senior technical standards. Greater technical specificity and trade-off analysis are needed.`,
       keyTakeaways: [
-        "Elaborate on technical trade-offs rather than providing single-sentence answers.",
-        "Structure past experiences with clear Situation, Action, and Measurable Result details.",
-        "Explicitly mention edge-case handling and production monitoring strategies.",
+        "Detail exact technical mechanisms (e.g., event loop mechanics, memory garbage collection).",
+        "Quantify past project achievements with hard numbers and metrics.",
+        "Proactively address scalability and database query optimizations.",
       ],
     };
   }
 
+  // Tier 4: Strong detailed responses (> 45 avg words + tech stack depth)
   return {
     overallScore: 78,
     technicalScore: 76,
     communicationScore: 82,
     problemSolvingScore: 77,
     strengths: [
-      `Demonstrated solid familiarity with ${techStack} core concepts.`,
-      "Communicated responses with clear structure and reasonable flow.",
-      "Provided relevant past experience context during technical questions.",
+      `Demonstrated solid practical competence with ${techStack} concepts.`,
+      "Communicated responses with clear structure and good flow.",
+      "Provided relevant technical context and architectural reasoning.",
     ],
     areasForImprovement: [
-      `Deeper technical elaboration required for advanced ${techStack} performance optimization and memory profiling.`,
-      "System design choices need more explicit discussion of database scaling, caching layers, and fault tolerance.",
-      "Include specific metrics (e.g., % reduction in crash rate, FPS improvements, throughput gains) to substantiate claims.",
+      `Deeper technical elaboration required for advanced ${techStack} low-level profiling.`,
+      "System design answers can be further strengthened with explicit disaster recovery and load balancing details.",
+      "Include more quantitative metrics to demonstrate business impact.",
     ],
-    summaryFeedback: `The candidate demonstrated good foundational competence for a ${role}. To reach top-tier (FAANG / Strong Hire) standards, responses should include deeper low-level technical specifics and quantitative performance data.`,
+    summaryFeedback: `COMPETENT PASS: Solid performance for a ${role}. The candidate effectively articulated technical concepts and demonstrated strong problem-solving capabilities with room for minor polish.`,
     keyTakeaways: [
       "Quantify your accomplishments with exact numbers or percentages.",
-      "Always address scalability, caching, and error handling proactively.",
-      "Practice breaking down complex technical problems before diving into implementation details.",
+      "Practice breaking down complex distributed systems before implementing.",
+      "Prepare deep-dive examples of production debugging scenarios.",
     ],
   };
 }
